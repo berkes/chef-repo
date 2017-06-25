@@ -3,11 +3,9 @@
 <% if @redirect_domain_names && @redirect_domain_names.any? %>
 server {
   listen <%= node['nginx']['port'] || '80' %>;
-  <% if @enable_ssl %>
   listen 443 ssl;
-  ssl_certificate <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.crt;
-  ssl_certificate_key <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.key;
-  <% end %>
+  ssl_certificate /etc/letsencrypt/live/<%= @domain_names.first %>/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/<%= @domain_names.first %>/privkey.pem;
   server_name <%= @redirect_domain_names.join(' ') %>;
   return 301 $scheme://<%= @domain_names.first %>$request_uri;
 }
@@ -32,13 +30,11 @@ server {
   <%= @custom_configuration["server_main"] %>
 }
 
-<% if @enable_ssl %>
-
 server {
   listen 443 ssl;
 
-  ssl_certificate <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.crt;
-  ssl_certificate_key <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.key;
+  ssl_certificate /etc/letsencrypt/live/<%= @domain_names.first %>/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/<%= @domain_names.first %>/privkey.pem;
 
   server_name <%= @domain_names.join(' ') %>;
 
@@ -60,8 +56,6 @@ server {
   <%= "client_max_body_size #{@client_max_body_size};" if @client_max_body_size.to_i != 0 %>
   <%= @custom_configuration["ssl_main"] %>
 }
-
-<% end %>
 
 upstream <%= @name %> {
   server unix:<%= node['rails']['applications_root'] %>/<%= @name %>/shared/tmp/sockets/unicorn.sock;
